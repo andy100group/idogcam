@@ -1,0 +1,10 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs/VSWorkspaceState.json
+/.vs/slnx.sqlite
+/.vs/idogcam
+/.vs
+/KCBase.IDogCam/.vs/KCBase.IDogCam.csproj.dtbcache.json
+/KCBase.IDogCam/obj
