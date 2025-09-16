@@ -1,0 +1,87 @@
+﻿@{
+    ViewBag.Title = "Home";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container">
+    <div class="hero-section" style="text-align: center; padding: 4rem 2rem; background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 3rem;">
+        <h1 style="color: #2c5282; margin-bottom: 1rem; font-size: 3rem;">🐕 iDogCam Integration Demo</h1>
+        <p style="font-size: 1.25rem; color: #4a5568; margin-bottom: 2rem; max-width: 600px; margin-left: auto; margin-right: auto;">
+            This demo showcases the integration between Kennel Connection software and iDogCam camera systems,
+            allowing pet facilities to provide camera access to pet owners and staff.
+        </p>
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            <a href="@Url.Action("Setup", "IDogCam")" class="btn btn-primary" style="font-size: 1.1rem; padding: 0.75rem 1.5rem;">
+                🔧 Configure Cameras
+            </a>            
+        </div>
+    </div>
+
+    <div class="features-section">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-bottom: 3rem;">
+            <div class="feature-card" style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid #3182ce;">
+                <h3 style="color: #2c5282; margin-bottom: 1rem;">📹 Run Cameras</h3>
+                <p style="color: #4a5568; margin-bottom: 1rem;">Link individual dog runs/cages to specific cameras, allowing pet owners to view their pets in private accommodations.</p>
+                <ul style="color: #718096; line-height: 1.8;">
+                    <li>Private room viewing for pet owners</li>
+                    <li>Service-based access control</li>
+                    <li>Real-time occupancy tracking</li>
+                </ul>
+            </div>
+
+            <div class="feature-card" style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid #38a169;">
+                <h3 style="color: #2c5282; margin-bottom: 1rem;">🏊 Room/Area Cameras</h3>
+                <p style="color: #4a5568; margin-bottom: 1rem;">Configure cameras for shared areas like play yards, pools, and common spaces with flexible access rules.</p>
+                <ul style="color: #718096; line-height: 1.8;">
+                    <li>Time-based availability</li>
+                    <li>Service-linked access</li>
+                    <li>Flexible viewing permissions</li>
+                </ul>
+            </div>
+
+            <div class="feature-card" style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid #d69e2e;">
+                <h3 style="color: #2c5282; margin-bottom: 1rem;">⚙️ Easy Configuration</h3>
+                <p style="color: #4a5568; margin-bottom: 1rem;">Simple setup interface for linking cameras to runs and rooms with comprehensive access controls.</p>
+                <ul style="color: #718096; line-height: 1.8;">
+                    <li>Intuitive setup interface</li>
+                    <li>XML-based configuration storage</li>
+                    <li>Live camera testing</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="demo-info" style="background: #f7fafc; padding: 2rem; border-radius: 8px; border: 1px solid #e2e8f0;">
+        <h3 style="color: #2c5282; margin-bottom: 1rem;">🧪 Demo Features</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+            <div>
+                <h4 style="color: #4a5568; margin-bottom: 0.5rem;">Dummy Data</h4>
+                <p style="color: #718096; margin: 0;">Pre-populated pets, appointments, and services for testing without database integration.</p>
+            </div>
+            <div>
+                <h4 style="color: #4a5568; margin-bottom: 0.5rem;">Mock API</h4>
+                <p style="color: #718096; margin: 0;">Simulated iDogCam API responses for development and testing purposes.</p>
+            </div>
+            <div>
+                <h4 style="color: #4a5568; margin-bottom: 0.5rem;">Access Control</h4>
+                <p style="color: #718096; margin: 0;">Functional permission system based on services, times, and pet check-in status.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-links" style="text-align: center; margin-top: 3rem; padding: 2rem; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <h3 style="color: #2c5282; margin-bottom: 1.5rem;">🚀 Quick Start Testing</h3>
+        <p style="color: #4a5568; margin-bottom: 2rem;">Try these test scenarios to see the integration in action:</p>
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            @*<a href="@Url.Action("PetView", "IDogCam", new { petId = 1 })" class="btn btn-success" target="_blank">
+                👤 Pet Owner View (Rex)
+            </a>
+            <a href="@Url.Action("PetView", "IDogCam", new { petId = 2 })" class="btn btn-success" target="_blank">
+                👤 Pet Owner View (Bella)
+            </a>
+            <a href="@Url.Action("PetView", "IDogCam", new { petId = 6 })" class="btn btn-warning" target="_blank">
+                👤 No Access Example (Lucy)
+            </a>*@
+        </div>
+    </div>
+</div>

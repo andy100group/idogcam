@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<CameraSettings xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Credentials>
+    <ApiKey>4kr345d2356v4c245.da43235444fken4sd4df2concbasdg2345nelid</ApiKey>
+    <KennelId>14001</KennelId>
+    <ErpCode>56743</ErpCode>
+  </Credentials>
+  <RunCameras>
+    <RunCameraConfiguration>
+      <RunId>R002</RunId>
+      <RunName>Large 11</RunName>
+      <CameraId>12734</CameraId>
+      <OtherServiceLink>Play Time</OtherServiceLink>
+      <EnabledForClient>true</EnabledForClient>
+    </RunCameraConfiguration>
+    <RunCameraConfiguration>
+      <RunId>R003</RunId>
+      <RunName>Medium 5</RunName>
+      <CameraId>12735</CameraId>
+      <OtherServiceLink>Individual Walk</OtherServiceLink>
+      <EnabledForClient>true</EnabledForClient>
+    </RunCameraConfiguration>
+    <RunCameraConfiguration>
+      <RunId>R004</RunId>
+      <RunName>Medium 6</RunName>
+      <CameraId>12736</CameraId>
+      <OtherServiceLink>Group Play</OtherServiceLink>
+      <EnabledForClient>true</EnabledForClient>
+    </RunCameraConfiguration>
+    <RunCameraConfiguration>
+      <RunId>R001</RunId>
+      <RunName>Large 10</RunName>
+      <CameraId>12732</CameraId>
+      <OtherServiceLink>Cam Service</OtherServiceLink>
+      <EnabledForClient>true</EnabledForClient>
+    </RunCameraConfiguration>
+  </RunCameras>
+  <RoomCameras>
+    <RoomCameraConfiguration>
+      <RoomId>YARD1</RoomId>
+      <RoomName>Doggy Play Yard</RoomName>
+      <CameraId>12732</CameraId>
+      <OtherServiceLink>Cam Service</OtherServiceLink>
+      <EnabledForClient>false</EnabledForClient>
+      <ExerciseServiceLink>Play Time</ExerciseServiceLink>
+      <ShowType>DuringServiceTime</ShowType>
+      <DisplayNameForClient>Doggy Play Yard</DisplayNameForClient>
+    </RoomCameraConfiguration>
+  </RoomCameras>
+</CameraSettings>

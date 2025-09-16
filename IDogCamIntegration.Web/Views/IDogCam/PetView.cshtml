@@ -1,0 +1,435 @@
+﻿@{
+    ViewBag.Title = "Camera View - " + ViewBag.Pet.Name;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var pet = ViewBag.Pet as KCBase.IDogCam.Models.Pet;
+    var appointment = ViewBag.Appointment as KCBase.IDogCam.Models.Appointment;
+    var settings = ViewBag.Settings as KCBase.IDogCam.Models.CameraSettings;
+}
+
+<div class="pet-view-page">
+    <div class="pet-header">
+        <h2>Welcome, @pet.OwnerName!</h2>
+        <p>View cameras for <strong>@pet.Name</strong></p>
+    </div>
+
+    @if (appointment != null)
+    {
+        <div class="appointment-status">
+            <h3>Current Stay Information</h3>
+            <div class="status-grid">
+                <div class="status-item">
+                    <span class="status-label">Pet:</span>
+                    <span class="status-value">@pet.Name</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Check-in Date:</span>
+                    <span class="status-value">@appointment.StartDate.ToString("MMM dd, yyyy")</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Check-out Date:</span>
+                    <span class="status-value">@appointment.EndDate.ToString("MMM dd, yyyy")</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Daily Hours:</span>
+                    <span class="status-value">@appointment.StartTime.ToString(@"hh\:mm") - @appointment.EndTime.ToString(@"hh\:mm")</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Services:</span>
+                    <span class="status-value">@string.Join(", ", appointment.Services.Select(s => s.ServiceName))</span>
+                </div>
+                @if (appointment.Exercises.Any())
+                {
+                    <div class="status-item">
+                        <span class="status-label">Activities:</span>
+                        <span class="status-value">@string.Join(", ", appointment.Exercises.Select(e => e.ServiceName))</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="cameras-section">
+            <h3>Available Cameras</h3>
+
+            @{
+                var availableCameras = new List<dynamic>();
+
+                // Check run cameras
+                var runCamera = settings?.RunCameras?.FirstOrDefault(rc => rc.RunId == appointment.RunId && rc.EnabledForClient && !string.IsNullOrEmpty(rc.CameraId));
+                if (runCamera != null)
+                {
+                    availableCameras.Add(new
+                    {
+                        Type = "Run",
+                        Name = runCamera.RunName,
+                        CameraId = runCamera.CameraId,
+                        Description = $"Your pet's private room ({runCamera.RunName})"
+                    });
+                }
+
+                // Check room cameras
+                if (settings?.RoomCameras != null)
+                {
+                    foreach (var roomCamera in settings.RoomCameras.Where(rc => !string.IsNullOrEmpty(rc.CameraId)))
+                    {
+                        bool canAccess = false;
+                        string reason = "";
+
+                        switch (roomCamera.ShowType)
+                        {
+                            case KCBase.IDogCam.Models.ShowType.DuringServiceTime:
+                                var hasService = appointment.Services.Any(s => s.ServiceName == roomCamera.OtherServiceLink) ||
+                                               appointment.Exercises.Any(e => e.ServiceName == roomCamera.ExerciseServiceLink);
+                                var now = DateTime.Now.TimeOfDay;
+                                var inTimeRange = roomCamera.AvailableTimes == null || !roomCamera.AvailableTimes.Any() ||
+                                                roomCamera.AvailableTimes.Any(tr => now >= tr.StartTime && now <= tr.EndTime);
+                                canAccess = hasService && inTimeRange;
+                                reason = !hasService ? "Service not booked" : !inTimeRange ? "Not available at this time" : "";
+                                break;
+
+                            case KCBase.IDogCam.Models.ShowType.DuringEntireStayIfHasService:
+                                var hasRequiredService = appointment.Services.Any(s => s.ServiceName == roomCamera.OtherServiceLink) ||
+                                                        appointment.Exercises.Any(e => e.ServiceName == roomCamera.ExerciseServiceLink);
+                                canAccess = hasRequiredService;
+                                reason = !hasRequiredService ? "Service not booked" : "";
+                                break;
+
+                            case KCBase.IDogCam.Models.ShowType.AnyPetCheckedIn:
+                                canAccess = true;
+                                break;
+                        }
+
+                        availableCameras.Add(new
+                        {
+                            Type = "Room",
+                            Name = roomCamera.DisplayNameForClient,
+                            CameraId = roomCamera.CameraId,
+                            Description = $"Shared area - {roomCamera.RoomName}",
+                            CanAccess = canAccess,
+                            Reason = reason
+                        });
+                    }
+                }
+            }
+
+            @if (availableCameras.Any())
+            {
+                <div class="cameras-grid">
+                    @foreach (var camera in availableCameras)
+                    {
+                        <div class="camera-card @(camera.Type.ToString().ToLower())-camera">
+                            <h4>@camera.Name</h4>
+                            <p class="camera-description">@camera.Description</p>
+
+                            @if (camera.Type == "Run" || (camera.Type == "Room" && camera.CanAccess))
+                            {
+                                <div class="camera-status available">
+                                    ✅ Available Now
+                                </div>
+                                <div class="camera-actions">
+                                    <a href="@Url.Action("Viewer", "IDogCam", new { cameraId = camera.CameraId, petId = pet.Id })"
+                                       class="btn btn-primary" target="_blank">
+                                        📹 View Camera
+                                    </a>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="camera-status unavailable">
+                                    ❌ Not Available
+                                </div>
+                                if (!string.IsNullOrEmpty(camera.Reason))
+                                {
+                                    <p class="unavailable-reason">@camera.Reason</p>
+                                }
+                                <div class="camera-actions">
+                                    <button class="btn btn-secondary" disabled>
+                                        📹 View Camera
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="no-cameras-message">
+                    <h4>No cameras are currently available</h4>
+                    <p>Camera access may depend on:</p>
+                    <ul>
+                        <li>The services you've booked</li>
+                        <li>The time of day</li>
+                        <li>Your pet's current location</li>
+                    </ul>
+                    <p>Please contact the facility if you have questions about camera access.</p>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="not-checked-in">
+            <h3>@pet.Name is not currently checked in</h3>
+            <p>Camera access is only available when your pet is staying at the facility.</p>
+            <div class="contact-info">
+                <h4>Need Help?</h4>
+                <p>If you believe this is an error, please contact the facility directly.</p>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .pet-view-page {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+        font-family: Arial, sans-serif;
+    }
+
+    .pet-header {
+        background: linear-gradient(135deg, #007bff, #0056b3);
+        color: white;
+        padding: 30px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        text-align: center;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .pet-header h2 {
+        margin-bottom: 10px;
+        font-size: 2em;
+    }
+
+    .appointment-status {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 25px;
+        margin-bottom: 30px;
+    }
+
+    .appointment-status h3 {
+        color: #2c3e50;
+        border-bottom: 2px solid #ecf0f1;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+    }
+
+    .status-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 15px;
+    }
+
+    .status-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px;
+        background: #f8f9fa;
+        border-radius: 6px;
+        border-left: 3px solid #007bff;
+    }
+
+    .status-label {
+        font-weight: bold;
+        color: #495057;
+    }
+
+    .status-value {
+        color: #6c757d;
+        text-align: right;
+    }
+
+    .cameras-section {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 25px;
+    }
+
+    .cameras-section h3 {
+        color: #2c3e50;
+        border-bottom: 2px solid #ecf0f1;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+    }
+
+    .cameras-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+    }
+
+    .camera-card {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        border: 1px solid #dee2e6;
+        transition: transform 0.2s, box-shadow 0.2s;
+        position: relative;
+    }
+
+    .camera-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    .run-camera {
+        border-left: 4px solid #007bff;
+    }
+
+    .room-camera {
+        border-left: 4px solid #28a745;
+    }
+
+    .camera-card h4 {
+        color: #2c3e50;
+        margin-bottom: 10px;
+    }
+
+    .camera-description {
+        color: #6c757d;
+        margin-bottom: 15px;
+        font-style: italic;
+    }
+
+    .camera-status {
+        font-weight: bold;
+        margin-bottom: 15px;
+        padding: 8px 12px;
+        border-radius: 6px;
+        text-align: center;
+    }
+
+    .camera-status.available {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .camera-status.unavailable {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    .unavailable-reason {
+        color: #dc3545;
+        font-size: 0.9em;
+        margin-bottom: 15px;
+        text-align: center;
+        font-style: italic;
+    }
+
+    .camera-actions {
+        text-align: center;
+    }
+
+    .no-cameras-message {
+        text-align: center;
+        padding: 40px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border: 1px dashed #dee2e6;
+    }
+
+    .no-cameras-message h4 {
+        color: #6c757d;
+        margin-bottom: 15px;
+    }
+
+    .no-cameras-message ul {
+        text-align: left;
+        display: inline-block;
+        color: #6c757d;
+        margin-bottom: 15px;
+    }
+
+    .not-checked-in {
+        text-align: center;
+        padding: 60px 20px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .not-checked-in h3 {
+        color: #6c757d;
+        margin-bottom: 20px;
+    }
+
+    .contact-info {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 30px;
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .contact-info h4 {
+        color: #2c3e50;
+        margin-bottom: 10px;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 14px;
+        font-weight: bold;
+        transition: all 0.3s;
+        text-align: center;
+        min-width: 120px;
+    }
+
+    .btn:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        background-color: #0056b3;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    media (max-width: 768px) {
+        .cameras-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .status-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .status-item {
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .status-value {
+            text-align: left;
+        }
+    }
+</style>

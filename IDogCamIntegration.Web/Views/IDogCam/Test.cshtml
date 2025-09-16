@@ -1,0 +1,131 @@
+﻿@{
+    ViewBag.Title = "iDogCam Test - Employee View";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var settings = ViewBag.Settings as KCBase.IDogCam.Models.CameraSettings;
+    var runs = ViewBag.Runs as List<KCBase.IDogCam.Models.Run>;
+    var rooms = ViewBag.Rooms as List<KCBase.IDogCam.Models.Room>;
+}
+
+<div class="test-page employee-test">
+    <div class="page-header">
+        <h2>iDogCam Employee Test Interface</h2>
+        <p>Test camera access and configuration from the employee perspective.</p>
+    </div>
+
+    <div class="test-sections">
+
+        <!-- Run Cameras Section -->
+        <div class="test-section">
+            <h3>Run Cameras (Employee Access)</h3>
+            <div class="cameras-grid">
+                @if (settings?.RunCameras?.Any(rc => !string.IsNullOrEmpty(rc.CameraId)) ?? false)
+                {
+                    foreach (var runCamera in settings.RunCameras.Where(rc => !string.IsNullOrEmpty(rc.CameraId)))
+                    {
+                        <div class="camera-card run-camera">
+                            <h4>@runCamera.RunName</h4>
+                            <div class="camera-details">
+                                <div class="detail-row"><span class="label">Camera ID:</span><span class="value">@runCamera.CameraId</span></div>
+                                <div class="detail-row"><span class="label">Run ID:</span><span class="value">@runCamera.RunId</span></div>
+                                <div class="detail-row"><span class="label">Client Access:</span><span class="value @(runCamera.EnabledForClient ? "enabled" : "disabled")">@(runCamera.EnabledForClient ? "Enabled" : "Disabled")</span></div>
+                                @if (!string.IsNullOrEmpty(runCamera.OtherServiceLink))
+                                { <div class="detail-row"><span class="label">Service Link:</span><span class="value">@runCamera.OtherServiceLink</span></div> }
+                            </div>
+                            <div class="camera-actions">
+                                <a href="@Url.Action("Viewer","IDogCam",new { cameraId=runCamera.CameraId,employee=true })" class="btn btn-primary btn-sm" target="_blank">View Camera (Employee)</a>
+                                @if (runCamera.EnabledForClient)
+                                { <a href="@Url.Action("Viewer","IDogCam",new { cameraId=runCamera.CameraId,employee=false })" class="btn btn-secondary btn-sm" target="_blank">View as Client</a> }
+                            </div>
+                        </div>
+                    }
+                }
+                else { <div class="no-cameras"><p>No run cameras configured. <a href="@Url.Action("Setup","IDogCam")">Set up cameras</a></p></div> }
+            </div>
+        </div>
+
+        <!-- Room Cameras Section -->
+        <div class="test-section">
+            <h3>Room/Area Cameras (Employee Access)</h3>
+            <div class="cameras-grid">
+                @if (settings?.RoomCameras?.Any(rc => !string.IsNullOrEmpty(rc.CameraId)) ?? false)
+                {
+                    foreach (var roomCamera in settings.RoomCameras.Where(rc => !string.IsNullOrEmpty(rc.CameraId)))
+                    {
+                        <div class="camera-card room-camera">
+                            <h4>@roomCamera.DisplayNameForClient</h4>
+                            <div class="camera-details">
+                                <div class="detail-row"><span class="label">Room:</span><span class="value">@roomCamera.RoomName</span></div>
+                                <div class="detail-row"><span class="label">Camera ID:</span><span class="value">@roomCamera.CameraId</span></div>
+                                <div class="detail-row"><span class="label">Show Type:</span><span class="value">@roomCamera.ShowType.ToString().Replace("AlwaysAvailable","Always Available").Replace("DuringBusinessHours","During Business Hours").Replace("ScheduledTimes","Scheduled Times")</span></div>
+                                @if (!string.IsNullOrEmpty(roomCamera.OtherServiceLink)) { <div class="detail-row"><span class="label">Service Link:</span><span class="value">@roomCamera.OtherServiceLink</span></div> }
+                                @if (!string.IsNullOrEmpty(roomCamera.ExerciseServiceLink)) { <div class="detail-row"><span class="label">Exercise Link:</span><span class="value">@roomCamera.ExerciseServiceLink</span></div> }
+                                @if (roomCamera.AvailableTimes?.Any() ?? false) { <div class="detail-row"><span class="label">Available Times:</span><span class="value">@string.Join(", ", roomCamera.AvailableTimes.Select(t=>t.ToString()))</span></div> }
+                            </div>
+                            <div class="camera-actions">
+                                <a href="@Url.Action("Viewer","IDogCam",new { cameraId=roomCamera.CameraId,employee=true })" class="btn btn-primary btn-sm" target="_blank">View Camera (Employee)</a>
+                                <a href="@Url.Action("Viewer","IDogCam",new { cameraId=roomCamera.CameraId,employee=false })" class="btn btn-secondary btn-sm" target="_blank">View as Client</a>
+                            </div>
+                        </div>
+                    }
+                }
+                else { <div class="no-cameras"><p>No room cameras configured. <a href="@Url.Action("Setup","IDogCam")">Set up cameras</a></p></div> }
+            </div>
+        </div>
+
+        <!-- Available Runs Section -->
+        <div class="test-section">
+            <h3>Available Runs</h3>
+            <p>Available runs in the system for camera assignment:</p>
+            <div class="runs-grid">
+                @if (runs?.Any() ?? false)
+                {
+                    foreach (var run in runs)
+                    {
+                        var hasCamera = settings?.RunCameras?.Any(rc=>rc.RunId==run.Id && !string.IsNullOrEmpty(rc.CameraId)) ?? false;
+                        <div class="run-card @(hasCamera ? "has-camera" : "no-camera")">
+                            <h4>@run.Name</h4>
+                            <div class="run-details">
+                                <p><strong>Size:</strong> @run.Size</p>
+                                <p><strong>ID:</strong> @run.Id</p>
+                                <p><strong>Camera Status:</strong> @(hasCamera ? "<span class=\"enabled\">Camera Configured</span>" : "<span class=\"disabled\">No Camera</span>")</p>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
+        <!-- Available Rooms Section -->
+        <div class="test-section">
+            <h3>Available Rooms</h3>
+            <p>Available rooms in the system for camera assignment:</p>
+            <div class="rooms-grid">
+                @if (rooms?.Any() ?? false)
+                {
+                    foreach (var room in rooms)
+                    {
+                        var hasCamera = settings?.RoomCameras?.Any(rc=>rc.RoomId==room.Id && !string.IsNullOrEmpty(rc.CameraId)) ?? false;
+                        <div class="room-card @(hasCamera ? "has-camera" : "no-camera")">
+                            <h4>@room.Name</h4>
+                            <div class="room-details">
+                                <p><strong>Type:</strong> @room.Type</p>
+                                <p><strong>ID:</strong> @room.Id</p>
+                                <p><strong>Camera Status:</strong> @(hasCamera ? "<span class=\"enabled\">Camera Configured</span>" : "<span class=\"disabled\">No Camera</span>")</p>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
+    </div>
+
+    <div class="test-footer">
+        <a href="@Url.Action("Setup","IDogCam")" class="btn btn-primary">Camera Setup & Configuration</a>
+        @*<a href="@Url.Action("ClientDemo","IDogCam")" class="btn btn-info">Client Demo View</a>*@
+    </div>
+</div>
+
+<style>
+.test-page{max-width:1200px;margin:0 auto;padding:20px;font-family:Arial,sans-serif}.page-header{background:#f8f9fa;padding:30px;border-radius:8px;margin-bottom:30px;text-align:center;border-left:4px solid #28a745}.page-header h2{color:#2c3e50;margin-bottom:10px}.test-sections{display:flex;flex-direction:column;gap:30px}.test-section{background:white;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);padding:25px}.test-section h3{color:#34495e;border-bottom:2px solid #ecf0f1;padding-bottom:10px;margin-bottom:20px}.cameras-grid,.runs-grid,.rooms-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}.camera-card,.run-card,.room-card{background:#f8f9fa;border-radius:8px;padding:20px;border:1px solid #dee2e6;transition:transform 0.2s,box-shadow 0.2s}.camera-card:hover,.run-card:hover,.room-card:hover{transform:translateY(-2px);box-shadow:0 4px 8px rgba(0,0,0,0.15)}.camera-card h4,.run-card h4,.room-card h4{color:#2c3e50;margin-bottom:15px;border-bottom:1px solid #bdc3c7;padding-bottom:5px}.run-camera{border-left:4px solid #007bff}.room-camera{border-left:4px solid #28a745}.has-camera{border-left:4px solid #28a745}.no-camera{border-left:4px solid #ffc107}.detail-row{display:flex;justify-content:space-between;margin-bottom:8px;align-items:center}.label{font-weight:bold;color:#495057;flex:0 0 auto}.value{color:#6c757d;text-align:right;flex:1;margin-left:10px}.enabled{color:#28a745;font-weight:bold}.disabled{color:#dc3545;font-weight:bold}.camera-actions{margin-top:15px;display:flex;gap:10px;flex-wrap:wrap}.no-cameras{text-align:center;padding:40px;color:#6c757d;font-style:italic}.test-footer{text-align:center;margin-top:40px;padding:30px;background:#f8f9fa;border-radius:8px;display:flex;gap:15px;justify-content:center;flex-wrap:wrap}.btn{padding:10px 20px;border:none;border-radius:4px;cursor:pointer;text-decoration:none;display:inline-block;font-size:14px;transition:all 0.3s;text-align:center}.btn:hover{transform:translateY(-1px);box-shadow:0 2px 4px rgba(0,0,0,0.2)}.btn-primary{background-color:#007bff;color:white}.btn-primary:hover{background-color:#0056b3}.btn-secondary{background-color:#6c757d;color:white}.btn-secondary:hover{background-color:#545b62}.btn-info{background-color:#17a2b8;color:white}.btn-info:hover{background-color:#117a8b}.btn-sm{padding:6px 12px;font-size:13px}media(max-width:768px){.cameras-grid,.runs-grid,.rooms-grid{grid-template-columns:1fr}.detail-row{flex-direction:column;align-items:flex-start;gap:5px}.value{text-align:left;margin-left:0}.test-footer{flex-direction:column;align-items:center}}
+</style>

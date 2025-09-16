@@ -1,0 +1,140 @@
+﻿@model KCBase.IDogCam.Models.CameraSetupViewModel
+@{ViewBag.Title="iDogCam Setup";Layout="~/Views/Shared/_Layout.cshtml";}
+<div class="idogcam-setup">
+    <div class="header-section"><h2>iDogCam Camera Setup</h2><p class="description">Configure your iDogCam integration settings and camera assignments.</p></div>
+    @if(!string.IsNullOrEmpty(ViewBag.ErrorMessage as string)){<div class="alert alert-danger">@ViewBag.ErrorMessage</div>}
+    <div class="credentials-section">
+        <h3>API Credentials</h3>
+        @using(Ajax.BeginForm("SaveCredentials","IDogCam",new AjaxOptions{HttpMethod="POST",OnSuccess="onCredentialsSaved",OnFailure="onCredentialsError"},new {@class="credentials-form"})){
+            <div class="form-row">
+                <div class="form-group">@Html.LabelFor(m=>m.Credentials.ApiKey,"API Key")@Html.TextBoxFor(m=>m.Credentials.ApiKey,new {@class="form-control",placeholder="Your iDogCam API Key"})@Html.ValidationMessageFor(m=>m.Credentials.ApiKey,"",new {@class="field-validation-error"})</div>
+                <div class="form-group">@Html.LabelFor(m=>m.Credentials.KennelId,"Kennel ID")@Html.TextBoxFor(m=>m.Credentials.KennelId,new {@class="form-control",placeholder="Your Kennel ID"})@Html.ValidationMessageFor(m=>m.Credentials.KennelId,"",new {@class="field-validation-error"})</div>
+                <div class="form-group">@Html.LabelFor(m=>m.Credentials.ErpCode,"ERP Code")@Html.TextBoxFor(m=>m.Credentials.ErpCode,new {@class="form-control",placeholder="Your ERP Code"})@Html.ValidationMessageFor(m=>m.Credentials.ErpCode,"",new {@class="field-validation-error"})</div>
+                <div class="form-group"><button type="submit" class="btn btn-primary">Test & Save Credentials</button></div>
+            </div>
+        }
+        <div id="credentials-status" class="status-message"></div>
+    </div>
+
+    <div class="camera-config-section">
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item"><a class="nav-link active" id="run-cameras-tab" data-toggle="tab" href="#run-cameras" role="tab">Run Cameras</a></li>
+            <li class="nav-item"><a class="nav-link" id="room-cameras-tab" data-toggle="tab" href="#room-cameras" role="tab">Room/Area Cameras</a></li>
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="run-cameras" role="tabpanel">
+                <h4>Run Camera Configuration</h4><p>Link individual dog runs/cages to specific cameras.</p>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead><tr><th>Run</th><th>Camera</th><th>Other Service Link</th><th>Enabled for Client?</th><th>Actions</th></tr></thead>
+                        <tbody id="run-cameras-table">
+                            @foreach(var run in Model.AvailableRuns){var existingConfig=Model.RunCameras.FirstOrDefault(rc=>rc.RunId==run.Id);
+                            <tr data-run-id="@run.Id"><td><strong>@run.Name</strong></td>
+                            <td>@Html.DropDownList("CameraId_"+run.Id,new SelectList(Model.AvailableCameras,"Id","Title",existingConfig?.CameraId),"Select Camera",new {@class="form-control camera-select"})</td>
+                            <td>@Html.DropDownList("ServiceLink_"+run.Id,new SelectList(Model.AvailableServices,"ServiceName","ServiceName",existingConfig?.OtherServiceLink),"Select Service",new {@class="form-control"})</td>
+                            <td>@Html.CheckBox("EnabledForClient_"+run.Id,existingConfig?.EnabledForClient??false,new {@class="form-check-input"})</td>
+                            <td><button type="button" class="btn btn-success btn-sm save-run-camera" data-run-id="@run.Id">Save</button>
+                            @if(!string.IsNullOrEmpty(existingConfig?.CameraId)){<a href="@Url.Action("Viewer","IDogCam",new{cameraId=existingConfig.CameraId,employee=true})" class="btn btn-info btn-sm" target="_blank">View</a>}
+                            </td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="room-cameras" role="tabpanel">
+                <h4>Room/Area Camera Configuration</h4><p>Configure cameras for shared areas like play yards, pools, etc.</p>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead><tr><th>Room Name</th><th>Display Name for Client</th><th>Camera</th><th>Service Links</th><th>Show Type</th><th>Times Available</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            @foreach(var room in Model.AvailableRooms){var existingConfig=Model.RoomCameras.FirstOrDefault(rc=>rc.RoomId==room.Id);
+                            <tr data-room-id="@room.Id">
+                                <td><strong>@room.Name</strong></td>
+                                <td>@Html.TextBox("DisplayName_"+room.Id,existingConfig?.DisplayNameForClient??room.Name,new {@class="form-control",placeholder="Display name for clients"})</td>
+                                <td>@Html.DropDownList("RoomCameraId_"+room.Id,new SelectList(Model.AvailableCameras,"Id","Title",existingConfig?.CameraId),"Select Camera",new {@class="form-control camera-select"})</td>
+                                <td><div class="service-links"><label>Other Service:</label>@Html.DropDownList("RoomServiceLink_"+room.Id,new SelectList(Model.AvailableServices,"ServiceName","ServiceName",existingConfig?.OtherServiceLink),"Select Service",new {@class="form-control form-control-sm"})<label>Exercise:</label>@Html.DropDownList("RoomExerciseLink_"+room.Id,new SelectList(Model.AvailableServices.Where(s=>s.ServiceName.Contains("Play")||s.ServiceName.Contains("Walk")||s.ServiceName.Contains("Swimming")),"ServiceName","ServiceName",existingConfig?.ExerciseServiceLink),"Select Exercise",new {@class="form-control form-control-sm"})</div></td>
+                                <td>@Html.DropDownListFor(m=>existingConfig.ShowType,new SelectList(Enum.GetValues(typeof(KCBase.IDogCam.Models.ShowType)).Cast<KCBase.IDogCam.Models.ShowType>().Select(e=>new{Value=(int)e,Text=e.ToString().Replace("DuringServiceTime","During Service Time").Replace("DuringEntireStayIfHasService","During Entire Stay If Has Service").Replace("AnyPetCheckedIn","Any Pet Checked In")}),"Value","Text",(int)(existingConfig?.ShowType??KCBase.IDogCam.Models.ShowType.DuringServiceTime)),"Select Show Type",new {@class="form-control",@name="ShowType_"+room.Id})</td>
+                                <td>@Html.TextBox("AvailableTimes_"+room.Id,existingConfig?.AvailableTimes!=null?string.Join(", ",existingConfig.AvailableTimes.Select(t=>t.ToString())):"",new {@class="form-control",placeholder="8:00am-10:00am, 3:00pm-5:00pm"})</td>
+                                <td><button type="button" class="btn btn-success btn-sm save-room-camera" data-room-id="@room.Id">Save</button>@if(!string.IsNullOrEmpty(existingConfig?.CameraId)){<a href="@Url.Action("Viewer","IDogCam",new{cameraId=existingConfig.CameraId})" class="btn btn-info btn-sm" target="_blank">View</a>}</td>
+                            </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts{
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.unobtrusive-ajax/3.2.6/jquery.unobtrusive-ajax.min.js"></script>
+<script>
+$(document).ready(function(){
+    $('.save-run-camera').click(function () {
+        var runId = $(this).data('run-id');
+        var row = $('tr[data-run-id="' + runId + '"]');
+        var data = { RunId: runId, RunName: row.find('td:first strong').text(), CameraId: row.find('select[name="CameraId_' + runId + '"]').val(), OtherServiceLink: row.find('select[name="ServiceLink_' + runId + '"]').val(), EnabledForClient: row.find('input[name="EnabledForClient_' + runId + '"]').is(':checked') };
+        $.post('@Url.Action("SaveRunCamera","IDogCam")', data).done(function (response) {
+            if (response.success) {
+                showMessage('success', response.message);
+                setTimeout(function () { location.reload(); }, 1000);
+            }
+            else {
+                showMessage('error', response.message);
+            }
+        }).fail(function () {
+            showMessage('error', 'Failed to save run camera configuration');
+        });
+    });
+    $('.save-room-camera').click(function () {
+        var roomId = $(this).data('room-id');
+        var row = $('tr[data-room-id="' + roomId + '"]');
+        var data = { RoomId: roomId, RoomName: row.find('td:first strong').text(), DisplayNameForClient: row.find('input[name="DisplayName_' + roomId + '"]').val(), CameraId: row.find('select[name="RoomCameraId_' + roomId + '"]').val(), OtherServiceLink: row.find('select[name="RoomServiceLink_' + roomId + '"]').val(), ExerciseServiceLink: row.find('select[name="RoomExerciseLink_' + roomId + '"]').val(), ShowType: parseInt(row.find('select[name="ShowType_' + roomId + '"]').val()) };
+        $.post('@Url.Action("SaveRoomCamera","IDogCam")', data).done(function (response) {
+            if (response.success) {
+                showMessage('success', response.message);
+                setTimeout(function () { location.reload(); }, 1000);
+            } else {
+                showMessage('error', response.message);
+            }
+        }).fail(function () { showMessage('error', 'Failed to save room camera configuration'); });
+    });
+});
+
+    function onCredentialsSaved(response)
+    {
+        if (response.success)
+        {
+            showMessage('success', response.message);
+            if (response.cameras && response.cameras.length > 0)
+            {
+                $('.camera-select').each(function () {
+                    var currentValue = $(this).val();
+                    $(this).empty().append('<option value="">Select Camera</option>');
+                    $.each(response.cameras, function (i, camera) {
+                        $(this).append('<option value="' + camera.Id + '">' + camera.Title + '</option>');
+                    }.bind(this));
+                    $(this).val(currentValue);
+                });
+            }
+        }
+        else
+        {
+            showMessage('error', response.message);
+        }
+    }
+    function onCredentialsError() {
+        showMessage('error', 'Failed to save credentials');
+    }
+    function showMessage(type, message) {
+        var alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+        var messageHtml = '<div class="alert ' + alertClass + ' alert-dismissible"><button type="button" class="close" data-dismiss="alert">&times;</button>' + message + '</div>'; $('#credentials-status').html(messageHtml); if (type === 'success') { setTimeout(function () { $('.alert-success').fadeOut(); }, 3000); }
+    }
+
+</script>
+}
+
+<style>
+.idogcam-setup{max-width:1200px;margin:0 auto;padding:20px;font-family:Arial,sans-serif}.header-section{background:#f8f9fa;padding:20px;border-radius:8px;margin-bottom:30px;border-left:4px solid #007bff}.header-section h2{color:#2c3e50;margin-bottom:10px}.credentials-section{background:white;padding:25px;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);margin-bottom:30px}.credentials-section h3{color:#34495e;border-bottom:2px solid #ecf0f1;padding-bottom:10px;margin-bottom:20px}.form-row{display:flex;gap:20px;align-items:end;flex-wrap:wrap}.form-group{flex:1;min-width:200px}.form-group label{display:block;margin-bottom:5px;font-weight:bold;color:#2c3e50}.form-control{width:100%;padding:8px 12px;border:1px solid #bdc3c7;border-radius:4px;font-size:14px}.form-control:focus{border-color:#3498db;box-shadow:0 0 0 2px rgba(52,152,219,0.2);outline:none}.btn{padding:8px 16px;border:none;border-radius:4px;cursor:pointer;text-decoration:none;display:inline-block;font-size:14px;transition:background-color 0.3s}.btn-primary{background-color:#3498db;color:white}.btn-primary:hover{background-color:#2980b9}.btn-success{background-color:#27ae60;color:white}.btn-success:hover{background-color:#229954}.btn-info{background-color:#17a2b8;color:white}.btn-info:hover{background-color:#138496}.btn-sm{padding:4px 8px;font-size:12px}.camera-config-section{background:white;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);overflow:hidden}.nav-tabs{background-color:#f8f9fa;border-bottom:1px solid #dee2e6;margin:0;padding:0 20px}.nav-link{color:#495057;border:none;padding:15px 20px;text-decoration:none}.nav-link.active{background-color:white;color:#007bff;border-bottom:2px solid #007bff}.tab-content{padding:25px}.table{width:100%;border-collapse:collapse;margin-top:20px}.table th,.table td{padding:12px;text-align:left;border-bottom:1px solid #dee2e6;vertical-align:middle}.table th{background-color:#f8f9fa;font-weight:bold;color:#495057}.table-striped tbody tr:nth-of-type(odd){background-color:#f8f9fa}.service-links label{font-size:12px;margin-bottom:2px;margin-top:5px;display:block}.service-links label:first-child{margin-top:0}.form-control-sm{padding:4px 8px;font-size:12px}.status-message{margin-top:15px}.alert{padding:12px 16px;border-radius:4px;margin-bottom:15px}.alert-success{background-color:#d4edda;border:1px solid #c3e6cb;color:#155724}.alert-danger{background-color:#f8d7da;border:1px solid #f5c6cb;color:#721c24}.alert-dismissible .close{background:none;border:none;float:right;font-size:18px;cursor:pointer}.field-validation-error{color:#e74c3c;font-size:12px;margin-top:5px;display:block;}
+</style>
