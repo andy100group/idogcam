@@ -1,0 +1,462 @@
+﻿@{
+    ViewBag.Title = "iDogCam Test - Employee View";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var settings = ViewBag.Settings as KCBase.IDogCam.Models.CameraSettings;
+    var appointments = ViewBag.Appointments as List<KCBase.IDogCam.Models.Appointment>;
+    var pets = ViewBag.Pets as List<KCBase.IDogCam.Models.Pet>;
+}
+
+<div class="test-page employee-test">
+    <div class="page-header">
+        <h2>iDogCam Employee Test Interface</h2>
+        <p>Test camera access and configuration from the employee perspective.</p>
+    </div>
+
+    <div class="test-sections">
+        <!-- Current Appointments Section -->
+        <div class="test-section">
+            <h3>Current Appointments</h3>
+            <div class="appointments-grid">
+                @if (appointments != null && appointments.Any())
+                {
+                    foreach (var appointment in appointments)
+                    {
+                        var pet = pets.FirstOrDefault(p => p.Id == appointment.PetId);
+                        <div class="appointment-card">
+                            <h4>@appointment.PetName (@pet?.OwnerName)</h4>
+                            <div class="appointment-details">
+                                <div class="detail-row">
+                                    <span class="label">Run:</span>
+                                    <span class="value">@appointment.RunId</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="label">Time:</span>
+                                    <span class="value">@(appointment.StartTime.ToString(@"hh\:mm")) - @(appointment.EndTime.ToString(@"hh\:mm"))</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="label">Services:</span>
+                                    <span class="value">@(appointment.Services != null && appointment.Services.Any() ? string.Join(", ", appointment.Services.Select(s => s?.ServiceName ?? "Unknown")) : "None")</span>
+                                </div>
+                                @if (appointment.Exercises != null && appointment.Exercises.Any())
+                                {
+                                    <div class="detail-row">
+                                        <span class="label">Exercises:</span>
+                                        <span class="value">@string.Join(", ", appointment.Exercises.Select(e => e?.ServiceName ?? "Unknown"))</span>
+                                    </div>
+                                }
+                            </div>
+                            <div class="appointment-actions">
+                                <a href="@Url.Action("PetView", "IDogCam", new { petId = appointment.PetId })"
+                                   class="btn btn-info btn-sm" target="_blank">
+                                    View as Pet Owner
+                                </a>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="no-appointments">
+                        <p>No current appointments found.</p>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Run Cameras Section -->
+        <div class="test-section">
+            <h3>Run Cameras (Employee Access)</h3>
+            <div class="cameras-grid">
+                @if (settings?.RunCameras != null && settings.RunCameras.Any())
+                {
+                    foreach (var runCamera in settings.RunCameras.Where(rc => !string.IsNullOrEmpty(rc.CameraId)))
+                    {
+                        var currentAppointment = appointments?.FirstOrDefault(a => a.RunId == runCamera.RunId);
+                        <div class="camera-card run-camera">
+                            <h4>@runCamera.RunName</h4>
+                            <div class="camera-details">
+                                <div class="detail-row">
+                                    <span class="label">Camera ID:</span>
+                                    <span class="value">@runCamera.CameraId</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="label">Current Occupant:</span>
+                                    <span class="value">
+                                        @if (currentAppointment != null)
+                                        {
+                                            var pet = pets.FirstOrDefault(p => p.Id == currentAppointment.PetId);
+                                            @($"{pet?.OwnerName}: {currentAppointment.PetName}")
+                                        }
+                                        else
+                                        {
+                                            <span class="vacant">Vacant</span>
+                                        }
+                                    </span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="label">Client Access:</span>
+                                    <span class="value @(runCamera.EnabledForClient ? "enabled" : "disabled")">
+                                        @(runCamera.EnabledForClient ? "Enabled" : "Disabled")
+                                    </span>
+                                </div>
+                                @if (!string.IsNullOrEmpty(runCamera.OtherServiceLink))
+                                {
+                                    <div class="detail-row">
+                                        <span class="label">Service Link:</span>
+                                        <span class="value">@runCamera.OtherServiceLink</span>
+                                    </div>
+                                }
+                            </div>
+                            <div class="camera-actions">
+                                <a href="@Url.Action("Viewer", "IDogCam", new { cameraId = runCamera.CameraId, employee = true })"
+                                   class="btn btn-primary btn-sm" target="_blank">
+                                    View Camera (Employee)
+                                </a>
+                                @if (currentAppointment != null && runCamera.EnabledForClient)
+                                {
+                                    <a href="@Url.Action("Viewer", "IDogCam", new { cameraId = runCamera.CameraId, petId = currentAppointment.PetId })"
+                                       class="btn btn-secondary btn-sm" target="_blank">
+                                        View as Client
+                                    </a>
+                                }
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="no-cameras">
+                        <p>No run cameras configured. <a href="@Url.Action("Setup", "IDogCam")">Set up cameras</a></p>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Room Cameras Section -->
+        <div class="test-section">
+            <h3>Room/Area Cameras (Employee Access)</h3>
+            <div class="cameras-grid">
+                @if (settings?.RoomCameras != null && settings.RoomCameras.Any())
+                {
+                    foreach (var roomCamera in settings.RoomCameras.Where(rc => !string.IsNullOrEmpty(rc.CameraId)))
+                    {
+                        <div class="camera-card room-camera">
+                            <h4>@roomCamera.DisplayNameForClient</h4>
+                            <div class="camera-details">
+                                <div class="detail-row">
+                                    <span class="label">Room:</span>
+                                    <span class="value">@roomCamera.RoomName</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="label">Camera ID:</span>
+                                    <span class="value">@roomCamera.CameraId</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="label">Show Type:</span>
+                                    <span class="value">@roomCamera.ShowType.ToString().Replace("DuringServiceTime", "During Service Time").Replace("DuringEntireStayIfHasService", "During Entire Stay If Has Service").Replace("AnyPetCheckedIn", "Any Pet Checked In")</span>
+                                </div>
+                                @if (!string.IsNullOrEmpty(roomCamera.OtherServiceLink))
+                                {
+                                    <div class="detail-row">
+                                        <span class="label">Service Link:</span>
+                                        <span class="value">@roomCamera.OtherServiceLink</span>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(roomCamera.ExerciseServiceLink))
+                                {
+                                    <div class="detail-row">
+                                        <span class="label">Exercise Link:</span>
+                                        <span class="value">@roomCamera.ExerciseServiceLink</span>
+                                    </div>
+                                }
+                                @if (roomCamera.AvailableTimes != null && roomCamera.AvailableTimes.Any())
+                                {
+                                    <div class="detail-row">
+                                        <span class="label">Available Times:</span>
+                                        <span class="value">@string.Join(", ", roomCamera.AvailableTimes.Select(t => t.ToString()))</span>
+                                    </div>
+                                }
+                            </div>
+                            <div class="camera-actions">
+                                <a href="@Url.Action("Viewer", "IDogCam", new { cameraId = roomCamera.CameraId, employee = true })"
+                                   class="btn btn-primary btn-sm" target="_blank">
+                                    View Camera (Employee)
+                                </a>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="no-cameras">
+                        <p>No room cameras configured. <a href="@Url.Action("Setup", "IDogCam")">Set up cameras</a></p>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- All Pets Test Links Section -->
+        <div class="test-section">
+            <h3>Pet Owner Test Links</h3>
+            <p>Test how the camera system appears from different pet owners' perspectives:</p>
+            <div class="pets-grid">
+                @if (pets != null && pets.Any())
+                {
+                    foreach (var pet in pets)
+                    {
+                        var appointment = appointments?.FirstOrDefault(a => a.PetId == pet.Id);
+                        <div class="pet-card">
+                            <h4>@pet.Name</h4>
+                            <p><strong>Owner:</strong> @pet.OwnerName</p>
+                            @if (appointment != null)
+                            {
+                                <p><strong>Status:</strong> <span class="checked-in">Currently Checked In</span></p>
+                                <p><strong>Run:</strong> @(appointment.RunId ?? "N/A")</p>
+                                <p><strong>Services:</strong> @(appointment.Services != null && appointment.Services.Any() ? string.Join(", ", appointment.Services.Select(s => s.ServiceName)) : "None")</p>
+                            }
+                            else
+                            {
+                                <p><strong>Status:</strong> <span class="not-checked-in">Not Checked In</span></p>
+                            }
+                            <div class="pet-actions">
+                                <a href="@Url.Action("PetView", "IDogCam", new { petId = pet.Id })"
+                                   class="btn btn-info btn-sm" target="_blank">
+                                    View as @pet.OwnerName
+                                </a>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="test-footer">
+        <a href="@Url.Action("Setup", "IDogCam")" class="btn btn-primary">
+            Camera Setup & Configuration
+        </a>
+    </div>
+</div>
+
+<style>
+    .test-page {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        font-family: Arial, sans-serif;
+    }
+
+    .page-header {
+        background: #f8f9fa;
+        padding: 30px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+        text-align: center;
+        border-left: 4px solid #28a745;
+    }
+
+    .page-header h2 {
+        color: #2c3e50;
+        margin-bottom: 10px;
+    }
+
+    .test-sections {
+        display: flex;
+        flex-direction: column;
+        gap: 30px;
+    }
+
+    .test-section {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 25px;
+    }
+
+    .test-section h3 {
+        color: #34495e;
+        border-bottom: 2px solid #ecf0f1;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+    }
+
+    .appointments-grid,
+    .cameras-grid,
+    .pets-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+    }
+
+    .appointment-card,
+    .camera-card,
+    .pet-card {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        border: 1px solid #dee2e6;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .appointment-card:hover,
+    .camera-card:hover,
+    .pet-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    .appointment-card h4,
+    .camera-card h4,
+    .pet-card h4 {
+        color: #2c3e50;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #bdc3c7;
+        padding-bottom: 5px;
+    }
+
+    .run-camera {
+        border-left: 4px solid #007bff;
+    }
+
+    .room-camera {
+        border-left: 4px solid #28a745;
+    }
+
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        align-items: center;
+    }
+
+    .label {
+        font-weight: bold;
+        color: #495057;
+        flex: 0 0 auto;
+    }
+
+    .value {
+        color: #6c757d;
+        text-align: right;
+        flex: 1;
+        margin-left: 10px;
+    }
+
+    .enabled {
+        color: #28a745;
+        font-weight: bold;
+    }
+
+    .disabled {
+        color: #dc3545;
+        font-weight: bold;
+    }
+
+    .vacant {
+        color: #6c757d;
+        font-style: italic;
+    }
+
+    .checked-in {
+        color: #28a745;
+        font-weight: bold;
+    }
+
+    .not-checked-in {
+        color: #6c757d;
+        font-style: italic;
+    }
+
+    .appointment-actions,
+    .camera-actions,
+    .pet-actions {
+        margin-top: 15px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .no-appointments,
+    .no-cameras {
+        text-align: center;
+        padding: 40px;
+        color: #6c757d;
+        font-style: italic;
+    }
+
+    .test-footer {
+        text-align: center;
+        margin-top: 40px;
+        padding: 30px;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    .btn {
+        padding: 6px 12px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 13px;
+        transition: all 0.3s;
+        text-align: center;
+    }
+
+    .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background-color: #0056b3;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background-color: #545b62;
+    }
+
+    .btn-info {
+        background-color: #17a2b8;
+        color: white;
+    }
+
+    .btn-info:hover {
+        background-color: #117a8b;
+    }
+
+    .btn-sm {
+        padding: 4px 8px;
+        font-size: 12px;
+    }
+
+    media (max-width: 768px) {
+        .appointments-grid,
+        .cameras-grid,
+        .pets-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .detail-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+        }
+
+        .value {
+            text-align: left;
+            margin-left: 0;
+        }
+    }
+</style>

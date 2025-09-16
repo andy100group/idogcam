@@ -1,0 +1,327 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewBag.Title - iDogCam Integration</title>
+    <style>
+        /* Kennel Connection inspired color scheme */
+        :root {
+            --primary-color: #2c5282;
+            --secondary-color: #2d3748;
+            --accent-color: #3182ce;
+            --success-color: #38a169;
+            --warning-color: #d69e2e;
+            --danger-color: #e53e3e;
+            --light-bg: #f7fafc;
+            --white: #ffffff;
+            --gray-100: #f7fafc;
+            --gray-200: #edf2f7;
+            --gray-300: #e2e8f0;
+            --gray-400: #cbd5e0;
+            --gray-500: #a0aec0;
+            --gray-600: #718096;
+            --gray-700: #4a5568;
+            --gray-800: #2d3748;
+            --gray-900: #1a202c;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--gray-100);
+            color: var(--gray-800);
+            line-height: 1.6;
+        }
+
+        .navbar {
+            background-color: var(--primary-color);
+            padding: 1rem 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .navbar-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-brand {
+            color: var(--white);
+            text-decoration: none;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .navbar-nav {
+            display: flex;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            gap: 2rem;
+        }
+
+        .navbar-nav a {
+            color: var(--white);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+
+        .navbar-nav a:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+
+        .main-content {
+            min-height: calc(100vh - 140px);
+            padding: 2rem 0;
+        }
+
+        .footer {
+            background-color: var(--gray-800);
+            color: var(--gray-300);
+            text-align: center;
+            padding: 1rem 0;
+            margin-top: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Bootstrap-like utilities */
+        .btn {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            margin: 0.25rem;
+            border: none;
+            border-radius: 4px;
+            text-decoration: none;
+            text-align: center;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background-color: var(--accent-color);
+            color: var(--white);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-color);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background-color: var(--gray-600);
+            color: var(--white);
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+            color: var(--white);
+        }
+
+        .btn-warning {
+            background-color: var(--warning-color);
+            color: var(--white);
+        }
+
+        .btn-danger {
+            background-color: var(--danger-color);
+            color: var(--white);
+        }
+
+        .alert {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+            border: 1px solid transparent;
+        }
+
+        .alert-success {
+            background-color: #f0fff4;
+            border-color: #9ae6b4;
+            color: #22543d;
+        }
+
+        .alert-danger {
+            background-color: #fed7d7;
+            border-color: #feb2b2;
+            color: #742a2a;
+        }
+
+        .alert-warning {
+            background-color: #fefcbf;
+            border-color: #f6e05e;
+            color: #744210;
+        }
+
+        .alert-info {
+            background-color: #ebf8ff;
+            border-color: #90cdf4;
+            color: #2a4365;
+        }
+
+        .form-control {
+            display: block;
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            color: var(--gray-700);
+            background-color: var(--white);
+            border: 1px solid var(--gray-300);
+            border-radius: 4px;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+
+        .form-control:focus {
+            outline: 0;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+        }
+
+        .table {
+            width: 100%;
+            margin-bottom: 1rem;
+            background-color: transparent;
+            border-collapse: collapse;
+        }
+
+        .table th,
+        .table td {
+            padding: 0.75rem;
+            vertical-align: top;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .table thead th {
+            vertical-align: bottom;
+            border-bottom: 2px solid var(--gray-200);
+            background-color: var(--gray-50);
+            font-weight: 600;
+        }
+
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .nav-tabs {
+            border-bottom: 1px solid var(--gray-300);
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 0.5rem 1rem;
+            color: var(--gray-600);
+            text-decoration: none;
+            border: 1px solid transparent;
+            border-bottom: none;
+            background-color: transparent;
+            cursor: pointer;
+        }
+
+        .nav-link.active {
+            color: var(--primary-color);
+            background-color: var(--white);
+            border-color: var(--gray-300) var(--gray-300) var(--white);
+            border-bottom: 1px solid var(--white);
+            margin-bottom: -1px;
+        }
+
+        .tab-content {
+            padding: 1rem 0;
+        }
+
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.show {
+            display: block;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        media (max-width: 768px) {
+            .navbar-container {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .navbar-nav {
+                flex-direction: column;
+                text-align: center;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.unobtrusive-ajax/3.2.6/jquery.unobtrusive-ajax.min.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="@Url.Action("Index", "Home")" class="navbar-brand">
+                🐕 iDogCam Integration
+            </a>
+            <ul class="navbar-nav">
+                <li><a href="@Url.Action("Index", "Home")">Home</a></li>
+                <li><a href="@Url.Action("Setup", "IDogCam")">Camera Setup</a></li>
+                <li><a href="@Url.Action("Test", "IDogCam")">Employee Test</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        @RenderBody()
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; @DateTime.Now.Year - iDogCam Integration Demo for Kennel Connection</p>
+        </div>
+    </footer>
+
+    <script>
+        // Basic tab functionality
+        $(document).ready(function() {
+            $('.nav-link').click(function(e) {
+                e.preventDefault();
+
+                var target = $(this).attr('href');
+
+                // Remove active class from all tabs and tab panes
+                $('.nav-link').removeClass('active');
+                $('.tab-pane').removeClass('show active');
+
+                // Add active class to clicked tab and corresponding pane
+                $(this).addClass('active');
+                $(target).addClass('show active');
+            });
+
+            // Initialize first tab as active
+            $('.nav-link:first').addClass('active');
+            $('.tab-pane:first').addClass('show active');
+        });
+    </script>
+
+    @RenderSection("scripts", required: false)
+</body>
+</html>

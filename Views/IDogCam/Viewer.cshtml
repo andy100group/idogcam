@@ -1,0 +1,466 @@
+﻿@model IDogCamIntegration.Web.ViewModels.CameraViewerViewModel
+@{
+    ViewBag.Title = "Camera Viewer - " + Model.CameraTitle;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="camera-viewer">
+    <div class="viewer-header">
+        <h2>@Model.CameraTitle</h2>
+        <div class="viewer-info">
+            @if (Model.IsEmployeeView)
+            {
+                <span class="badge badge-employee">Employee View</span>
+            }
+            else if (Model.PetId.HasValue)
+            {
+                <span class="badge badge-client">Client View - Pet ID: @Model.PetId</span>
+            }
+        </div>
+    </div>
+
+    <div class="viewer-content">
+        @if (Model.CanView)
+        {
+            <div class="camera-container">
+                <div class="camera-frame">
+                    <!-- iDogCam viewer iframe -->
+                    <form id="cameraForm" method="post" action="http://idogcam.com/idogcamviewer.php" target="cameraFrame">
+                        <input type="hidden" name="id" value="@Model.CameraId" />
+                        <input type="hidden" name="idogcamauth" value="@Model.Auth" />
+                    </form>
+
+                    <iframe name="cameraFrame"
+                            src="about:blank"
+                            frameborder="0"
+                            class="camera-iframe"
+                            onload="if(this.src === 'about:blank') document.getElementById('cameraForm').submit();">
+                        <p>
+                            Your browser does not support iframes. Please visit the camera directly at:
+                            <a href="http://idogcam.com/idogcamviewer.php?id=@Model.CameraId" target="_blank">View Camera</a>
+                        </p>
+                    </iframe>
+                </div>
+
+                <div class="camera-controls">
+                    <button type="button" class="btn btn-primary btn-sm" onclick="refreshCamera()">
+                        <i class="icon-refresh"></i> Refresh Camera
+                    </button>
+
+                    @if (Model.IsEmployeeView)
+                    {
+                        <a href="@Url.Action("Setup", "IDogCam")" class="btn btn-secondary btn-sm">
+                            <i class="icon-settings"></i> Camera Settings
+                        </a>
+                    }
+
+                    <button type="button" class="btn btn-info btn-sm" onclick="toggleFullscreen()">
+                        <i class="icon-fullscreen"></i> Fullscreen
+                    </button>
+                </div>
+            </div>
+
+            <div class="camera-info">
+                <div class="info-card">
+                    <h4>Camera Information</h4>
+                    <div class="info-row">
+                        <span class="info-label">Camera ID:</span>
+                        <span class="info-value">@Model.CameraId</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Camera Name:</span>
+                        <span class="info-value">@Model.CameraTitle</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Access Level:</span>
+                        <span class="info-value">@(Model.IsEmployeeView ? "Employee" : "Client")</span>
+                    </div>
+                    @if (Model.PetId.HasValue)
+                    {
+                        <div class="info-row">
+                            <span class="info-label">Pet ID:</span>
+                            <span class="info-value">@Model.PetId</span>
+                        </div>
+                    }
+                    <div class="info-row">
+                        <span class="info-label">Last Updated:</span>
+                        <span class="info-value" id="lastUpdated">@DateTime.Now.ToString("HH:mm:ss")</span>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="access-denied">
+                <div class="denied-icon">🚫</div>
+                <h3>Camera Access Denied</h3>
+                <p class="denied-reason">@Model.ReasonNotAvailable</p>
+
+                @if (!Model.IsEmployeeView)
+                {
+                    <div class="denied-help">
+                        <h4>Why can't I see the camera?</h4>
+                        <ul>
+                            <li>Your pet may not be currently checked in</li>
+                            <li>Camera access may not be enabled for this service</li>
+                            <li>The camera may only be available during specific times</li>
+                            <li>Your pet may not be in the associated room or run</li>
+                        </ul>
+                        <p><strong>Contact the facility</strong> if you believe this is an error.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="employee-debug">
+                        <h4>Debug Information (Employee View)</h4>
+                        <div class="debug-info">
+                            <strong>Reason:</strong> @Model.ReasonNotAvailable<br />
+                            <strong>Camera ID:</strong> @Model.CameraId<br />
+                            <strong>Viewer Type:</strong> @(Model.IsEmployeeView ? "Employee" : "Client")<br />
+                            @if (Model.PetId.HasValue)
+                            {
+                                <strong>Pet ID:</strong> @Model.PetId<br />
+                            }
+                        </div>
+                        <a href="@Url.Action("Setup", "IDogCam")" class="btn btn-primary">
+                            Check Camera Configuration
+                        </a>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        var refreshInterval;
+
+        $(document).ready(function () {
+            // Auto-refresh timestamp every minute
+            refreshInterval = setInterval(function () {
+                $('#lastUpdated').text(new Date().toLocaleTimeString());
+            }, 60000);
+
+            // Handle window resize for responsive iframe
+            $(window).resize(function () {
+                adjustCameraSize();
+            });
+
+            adjustCameraSize();
+        });
+
+        function refreshCamera() {
+            var iframe = document.querySelector('.camera-iframe');
+            if (iframe) {
+                iframe.src = iframe.src;
+                $('#lastUpdated').text(new Date().toLocaleTimeString());
+
+                // Show refresh feedback
+                var btn = event.target;
+                var originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="icon-loading"></i> Refreshing...';
+                btn.disabled = true;
+
+                setTimeout(function () {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }, 2000);
+            }
+        }
+
+        function toggleFullscreen() {
+            var iframe = document.querySelector('.camera-iframe');
+            if (iframe) {
+                if (iframe.requestFullscreen) {
+                    iframe.requestFullscreen();
+                } else if (iframe.webkitRequestFullscreen) {
+                    iframe.webkitRequestFullscreen();
+                } else if (iframe.msRequestFullscreen) {
+                    iframe.msRequestFullscreen();
+                }
+            }
+        }
+
+        function adjustCameraSize() {
+            var container = $('.camera-container');
+            var iframe = $('.camera-iframe');
+
+            if (container.length && iframe.length) {
+                var containerWidth = container.width();
+                var aspectRatio = 16 / 9; // Standard camera aspect ratio
+                var height = containerWidth / aspectRatio;
+
+                iframe.height(Math.min(height, window.innerHeight * 0.6));
+            }
+        }
+
+        // Cleanup on page unload
+        $(window).on('beforeunload', function () {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+        });
+    </script>
+}
+
+<style>
+    .camera-viewer {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        font-family: Arial, sans-serif;
+    }
+
+    .viewer-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border-left: 4px solid #007bff;
+    }
+
+    .viewer-header h2 {
+        color: #2c3e50;
+        margin: 0;
+    }
+
+    .viewer-info {
+        display: flex;
+        gap: 10px;
+    }
+
+    .badge {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .badge-employee {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .badge-client {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .viewer-content {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 25px;
+    }
+
+    media (max-width: 768px) {
+        .viewer-content {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .camera-container {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+
+    .camera-frame {
+        position: relative;
+        background: #000;
+        min-height: 400px;
+    }
+
+    .camera-iframe {
+        width: 100%;
+        height: 450px;
+        border: none;
+        display: block;
+    }
+
+    .camera-controls {
+        padding: 15px;
+        background: #f8f9fa;
+        border-top: 1px solid #dee2e6;
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .camera-info {
+        align-self: start;
+    }
+
+    .info-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 20px;
+    }
+
+    .info-card h4 {
+        color: #2c3e50;
+        margin-bottom: 15px;
+        border-bottom: 2px solid #ecf0f1;
+        padding-bottom: 8px;
+    }
+
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        padding: 5px 0;
+    }
+
+    .info-label {
+        font-weight: bold;
+        color: #34495e;
+    }
+
+    .info-value {
+        color: #7f8c8d;
+        text-align: right;
+    }
+
+    .access-denied {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 60px 20px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .denied-icon {
+        font-size: 4em;
+        margin-bottom: 20px;
+        opacity: 0.7;
+    }
+
+    .access-denied h3 {
+        color: #e74c3c;
+        margin-bottom: 15px;
+    }
+
+    .denied-reason {
+        color: #7f8c8d;
+        font-size: 16px;
+        margin-bottom: 30px;
+        font-style: italic;
+    }
+
+    .denied-help,
+    .employee-debug {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 25px;
+        text-align: left;
+        max-width: 500px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .denied-help h4,
+    .employee-debug h4 {
+        color: #2c3e50;
+        margin-bottom: 15px;
+    }
+
+    .denied-help ul {
+        text-align: left;
+        color: #7f8c8d;
+        margin-bottom: 15px;
+    }
+
+    .denied-help ul li {
+        margin-bottom: 5px;
+    }
+
+    .debug-info {
+        background: #e9ecef;
+        padding: 15px;
+        border-radius: 4px;
+        font-family: monospace;
+        margin-bottom: 15px;
+        line-height: 1.6;
+    }
+
+    .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 14px;
+        transition: all 0.3s;
+        text-align: center;
+    }
+
+    .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        background-color: #0056b3;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background-color: #545b62;
+    }
+
+    .btn-info {
+        background-color: #17a2b8;
+        color: white;
+    }
+
+    .btn-info:hover {
+        background-color: #117a8b;
+    }
+
+    .btn-sm {
+        padding: 6px 12px;
+        font-size: 13px;
+    }
+
+    /* Icon placeholders */
+    .icon-refresh::before { content: "🔄 "; }
+    .icon-settings::before { content: "⚙️ "; }
+    .icon-fullscreen::before { content: "⛶ "; }
+    .icon-loading::before { content: "⏳ "; }
+
+    /* Loading animation */
+    keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .icon-loading::before {
+        animation: spin 1s linear infinite;
+    }
+</style>
