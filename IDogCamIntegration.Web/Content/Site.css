@@ -1,4 +1,14 @@
-﻿/* Set padding to keep content from hitting the edges */
+﻿--e-global-color-primary: #1d75b9;
+--e-global-color-secondary: #54595f;
+--e-global-color-text: #000;
+--e-global-color-accent: #0f8ca9;
+--e-global-color-429aad30: #02a399;
+--e-global-color-687bab1a: #46b16e;
+--e-global-color-1aeb4ec: #8abe42;
+--e-global-color-442d4118: #0e304b;
+--e-global-color-3ebc0204: #fff;
+
+/* Set padding to keep content from hitting the edges */
 .body-content {
     margin-top: 15px;
     padding-left: 15px;
@@ -18,3 +28,4 @@ select,
 textarea {
     max-width: 280px;
 }
+

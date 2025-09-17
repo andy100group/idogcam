@@ -36,7 +36,7 @@
         }
 
         .navbar {
-            background-color: var(--primary-color);
+            background: linear-gradient(90deg, #1e5f74 0%, #4a9eff 50%, #7bc142 100%);
             padding: 1rem 0;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
@@ -55,6 +55,7 @@
             text-decoration: none;
             font-size: 1.5rem;
             font-weight: bold;
+            background-image: url(KC-NavLogo.svg)
         }
 
         .navbar-nav {
@@ -278,7 +279,7 @@
     <nav class="navbar">
         <div class="navbar-container">
             <a href="@Url.Action("Index", "Home")" class="navbar-brand">
-                🐕 iDogCam Integration
+              <img src="~/Content/KC-NavLogo-300x75.png" />
             </a>
             <ul class="navbar-nav">
                 <li><a href="@Url.Action("Index", "Home")">Home</a></li>

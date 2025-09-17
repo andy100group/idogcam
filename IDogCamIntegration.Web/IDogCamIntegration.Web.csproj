@@ -129,6 +129,8 @@
     <Compile Include="ViewModels\LoginViewModel.cs" />
     <Compile Include="ViewModels\UserListViewModel.cs" />
     <Compile Include="ViewModels\UserViewModel.cs" />
+    <Content Include="Content\KC-NavLogo-300x75.png" />
+    <Content Include="Content\KC-NavLogo.svg" />
     <Content Include="Views\IDogCam\PetView.cshtml" />
   </ItemGroup>
   <ItemGroup>

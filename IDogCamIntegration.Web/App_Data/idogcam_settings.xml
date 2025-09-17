@@ -39,12 +39,11 @@
     <RoomCameraConfiguration>
       <RoomId>YARD1</RoomId>
       <RoomName>Doggy Play Yard</RoomName>
-      <CameraId>12732</CameraId>
+      <CameraId>12733</CameraId>
       <OtherServiceLink>Cam Service</OtherServiceLink>
       <EnabledForClient>false</EnabledForClient>
       <ExerciseServiceLink>Play Time</ExerciseServiceLink>
       <ShowType>DuringServiceTime</ShowType>
-      <AvailableTimes />
       <DisplayNameForClient>Doggy Play Yard</DisplayNameForClient>
     </RoomCameraConfiguration>
   </RoomCameras>
