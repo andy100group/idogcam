@@ -44,6 +44,7 @@
       <EnabledForClient>false</EnabledForClient>
       <ExerciseServiceLink>Play Time</ExerciseServiceLink>
       <ShowType>DuringServiceTime</ShowType>
+      <AvailableTimes />
       <DisplayNameForClient>Doggy Play Yard</DisplayNameForClient>
     </RoomCameraConfiguration>
   </RoomCameras>

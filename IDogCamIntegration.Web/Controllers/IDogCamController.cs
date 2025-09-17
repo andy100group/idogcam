@@ -231,5 +231,108 @@ namespace KCBase.IDogCam.Controllers
 
             return View();
         }
+
+
+        [HttpGet]
+        public ActionResult CameraProxy(string cameraId, string auth)
+        {
+            try
+            {
+                using (var client = new System.Net.WebClient())
+                {
+                    // Set user agent to avoid blocking
+                    client.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+
+                    var url = $"https://idogcam.com/idogcamviewer.php?id={Uri.EscapeDataString(cameraId)}&idogcamauth={Uri.EscapeDataString(auth)}";
+
+                    // Download the content
+                    var content = client.DownloadString(url);
+
+                    // Replace the problematic streaming URLs to use our proxy
+                    var baseUrl = Request.Url.Scheme + "://" + Request.Url.Authority;
+                    content = content.Replace("https://gracelanekennels.viewidogcam.com:10000/", baseUrl + "/IDogCam/StreamProxy/");
+
+                    // Return as HTML content
+                    Response.ContentType = "text/html";
+                    return Content(content);
+                }
+            }
+            catch (System.Net.WebException webEx)
+            {
+                var errorContent = $@"
+        <html>
+        <body style='font-family: Arial, sans-serif; padding: 20px; text-align: center;'>
+            <h3 style='color: #e74c3c;'>Camera Service Error</h3>
+            <p>Unable to connect to IDogCam service.</p>
+            <p><strong>Details:</strong> {webEx.Message}</p>
+            <p><a href='https://idogcam.com/idogcamviewer.php?id={Uri.EscapeDataString(cameraId)}&idogcamauth={Uri.EscapeDataString(auth)}' target='_blank'>Try Direct Link</a></p>
+        </body>
+        </html>";
+
+                return Content(errorContent, "text/html");
+            }
+            catch (Exception ex)
+            {
+                var errorContent = $@"
+        <html>
+        <body style='font-family: Arial, sans-serif; padding: 20px; text-align: center;'>
+            <h3 style='color: #e74c3c;'>Unexpected Error</h3>
+            <p>An error occurred while loading the camera.</p>
+            <p><strong>Error:</strong> {ex.Message}</p>
+            <p><a href='https://idogcam.com/idogcamviewer.php?id={Uri.EscapeDataString(cameraId)}&idogcamauth={Uri.EscapeDataString(auth)}' target='_blank'>Try Direct Link</a></p>
+        </body>
+        </html>";
+
+                return Content(errorContent, "text/html");
+            }
+        }
+
+        [HttpGet]
+        public ActionResult StreamProxy(string pathInfo = "")
+        {
+            try
+            {
+                // Reconstruct the original streaming URL
+                var originalUrl = "https://gracelanekennels.viewidogcam.com:10000/" + pathInfo;
+                if (!string.IsNullOrEmpty(Request.Url.Query))
+                {
+                    originalUrl += Request.Url.Query;
+                }
+
+                using (var client = new System.Net.WebClient())
+                {
+                    client.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+
+                    // Determine content type based on file extension
+                    string contentType = "application/octet-stream";
+                    if (pathInfo.Contains("++hls_mediaplaylist"))
+                    {
+                        contentType = "application/vnd.apple.mpegurl"; // HLS playlist
+                    }
+                    else if (pathInfo.EndsWith(".ts"))
+                    {
+                        contentType = "video/mp2t"; // HLS segments
+                    }
+                    else if (pathInfo.EndsWith(".m3u8"))
+                    {
+                        contentType = "application/vnd.apple.mpegurl";
+                    }
+
+                    var data = client.DownloadData(originalUrl);
+
+                    // Add CORS headers
+                    Response.Headers.Add("Access-Control-Allow-Origin", "*");
+                    Response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+                    Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type");
+
+                    return File(data, contentType);
+                }
+            }
+            catch (Exception ex)
+            {
+                Response.StatusCode = 500;
+                return Content($"Stream proxy error: {ex.Message}");
+            }
+        }
     }
 }
