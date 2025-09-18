@@ -232,7 +232,6 @@ namespace KCBase.IDogCam.Controllers
             return View();
         }
 
-
         [HttpGet]
         public ActionResult CameraProxy(string cameraId, string auth)
         {
@@ -247,12 +246,16 @@ namespace KCBase.IDogCam.Controllers
 
                     // Download the content
                     var content = client.DownloadString(url);
+                    
+                    var streamingDomain = ExtractStreamingDomain(content);
 
-                    // Replace the problematic streaming URLs to use our proxy
-                    var baseUrl = Request.Url.Scheme + "://" + Request.Url.Authority;
-                    content = content.Replace("https://gracelanekennels.viewidogcam.com:10000/", baseUrl + "/IDogCam/StreamProxy/");
-
-                    // Return as HTML content
+                    if (!string.IsNullOrEmpty(streamingDomain))
+                    {
+                        var baseUrl = Request.Url.Scheme + "://" + Request.Url.Authority;
+                        var proxyUrl = $"{baseUrl}/IDogCam/StreamProxy?domain={Uri.EscapeDataString(streamingDomain)}&path=";
+                        content = content.Replace($"https://{streamingDomain}/", proxyUrl);
+                    }
+                    
                     Response.ContentType = "text/html";
                     return Content(content);
                 }
@@ -288,32 +291,48 @@ namespace KCBase.IDogCam.Controllers
         }
 
         [HttpGet]
-        public ActionResult StreamProxy(string pathInfo = "")
+        public ActionResult StreamProxy(string domain, string path = "", string pathInfo = "")
         {
             try
-            {
-                // Reconstruct the original streaming URL
-                var originalUrl = "https://gracelanekennels.viewidogcam.com:10000/" + pathInfo;
-                if (!string.IsNullOrEmpty(Request.Url.Query))
+            {                
+                var actualPath = !string.IsNullOrEmpty(path) ? path : pathInfo;
+
+                if (string.IsNullOrEmpty(domain))
                 {
-                    originalUrl += Request.Url.Query;
+                    return Content("Missing streaming domain parameter", "text/plain");
+                }
+
+                
+                var originalUrl = $"https://{domain}/{actualPath}";
+
+                if (!string.IsNullOrEmpty(Request.Url.Query))                {
+                   
+                    var queryString = Request.Url.Query.Replace($"domain={Uri.EscapeDataString(domain)}", "")
+                                                        .Replace($"path={Uri.EscapeDataString(actualPath)}", "")
+                                                        .Replace("&&", "&")
+                                                        .TrimStart('&', '?');
+
+                    if (!string.IsNullOrEmpty(queryString))
+                    {
+                        originalUrl += "?" + queryString;
+                    }
                 }
 
                 using (var client = new System.Net.WebClient())
                 {
                     client.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
 
-                    // Determine content type based on file extension
+                    
                     string contentType = "application/octet-stream";
-                    if (pathInfo.Contains("++hls_mediaplaylist"))
+                    if (actualPath.Contains("++hls_mediaplaylist"))
                     {
-                        contentType = "application/vnd.apple.mpegurl"; // HLS playlist
+                        contentType = "application/vnd.apple.mpegurl"; 
                     }
-                    else if (pathInfo.EndsWith(".ts"))
+                    else if (actualPath.EndsWith(".ts"))
                     {
-                        contentType = "video/mp2t"; // HLS segments
+                        contentType = "video/mp2t"; 
                     }
-                    else if (pathInfo.EndsWith(".m3u8"))
+                    else if (actualPath.EndsWith(".m3u8"))
                     {
                         contentType = "application/vnd.apple.mpegurl";
                     }
@@ -332,6 +351,26 @@ namespace KCBase.IDogCam.Controllers
             {
                 Response.StatusCode = 500;
                 return Content($"Stream proxy error: {ex.Message}");
+            }
+        }
+
+        private string ExtractStreamingDomain(string content)
+        {
+            try
+            {               
+                var regex = new System.Text.RegularExpressions.Regex(@"https://([^/]+\.viewidogcam\.com:10000)/");
+                var match = regex.Match(content);
+
+                if (match.Success)
+                {
+                    return match.Groups[1].Value; 
+                }
+
+                return null;
+            }
+            catch
+            {
+                return null;
             }
         }
     }
